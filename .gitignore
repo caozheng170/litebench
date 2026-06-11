@@ -1,0 +1,17 @@
+# Rust
+agent/target/
+
+# Node
+web/node_modules/
+web/dist/
+
+# Benchmark output
+result.json
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Playwright artifacts
+web/.playwright-mcp/

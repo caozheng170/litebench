@@ -1,0 +1,25 @@
+{
+  "schema": "bench-result/v1",
+  "hardware": {
+    "cpuBrand": "AMD Ryzen 7 5800X 8-Core Processor",
+    "cpuCores": 8,
+    "cpuThreads": 16,
+    "memTotalGB": 32,
+    "gpuName": "Unknown GPU (native GPU probe pending)",
+    "os": "Windows 11"
+  },
+  "subscores": {
+    "cpu": 1820,
+    "memory": 1240,
+    "disk": 1560
+  },
+  "totalScore": 1626,
+  "raw": {
+    "cpuSingleOps": 138000,
+    "cpuMultiOps": 1380000,
+    "memBandwidthGBs": 22.3,
+    "diskSeqMBs": 2400,
+    "diskRandIOPS": 18600
+  },
+  "timestamp": 1718000000
+}
