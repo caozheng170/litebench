@@ -6,6 +6,7 @@ mod score;
 mod server;
 mod state;
 mod types;
+mod util;
 
 use state::AppState;
 use std::sync::{Arc, Mutex};
@@ -108,13 +109,13 @@ fn run_benchmark(state: Arc<Mutex<AppState>>, out_path: &str) {
     }
     eprintln!("    内存: {} GB | OS: {}", hardware.mem_total_gb, hardware.os);
 
-    phase!("cpu", "CPU 跑分（单核 + 多核）…", 0.15);
+    phase!("cpu", "CPU 跑分（预热 + 多轮取中位数）…", 0.15);
     let (cpu_single, cpu_multi) = bench_cpu::run();
 
-    phase!("memory", "内存带宽测试…", 0.6);
+    phase!("memory", "内存带宽测试（多轮取中位数）…", 0.6);
     let mem_bw = bench_mem::run();
 
-    phase!("disk", "磁盘读写测试…", 0.8);
+    phase!("disk", "磁盘真实读写测试（绕过系统缓存）…", 0.8);
     let (disk_seq, disk_rand) = bench_disk::run();
 
     phase!("scoring", "计算综合评分…", 0.95);

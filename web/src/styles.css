@@ -528,3 +528,95 @@ body {
   font-weight: 700;
   color: var(--text);
 }
+
+/* Name prompt modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 18, 0.78);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 32px;
+  width: min(400px, 90vw);
+  text-align: center;
+}
+
+.modal-icon {
+  font-size: 36px;
+}
+
+.modal-card h2 {
+  margin: 10px 0 8px;
+}
+
+.modal-card p {
+  margin: 0 0 20px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.name-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 16px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  outline: none;
+}
+
+.name-input:focus {
+  border-color: var(--primary);
+}
+
+.btn.wide {
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Report bar + PDF capture area */
+.report-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.report-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.report-sub {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.report-body {
+  display: grid;
+  gap: 20px;
+}
+
+/* Title repeated inside the capture area so it appears in the PDF itself. */
+.report-head-print {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 4px 6px 0;
+}

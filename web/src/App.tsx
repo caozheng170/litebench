@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { BenchResult } from "./types";
 import { SAMPLE_RESULT, REFERENCE_MACHINES } from "./data/baseline";
 import { AgentConnect } from "./components/AgentConnect";
@@ -7,15 +7,37 @@ import { ScoreCard } from "./components/ScoreCard";
 import { HardwareDetail } from "./components/HardwareDetail";
 import { RadarChart } from "./components/RadarChart";
 import { CompareBar } from "./components/CompareBar";
+import { NamePrompt } from "./components/NamePrompt";
+import { ExportPdf } from "./components/ExportPdf";
+
+const NAME_KEY = "litebench.userName";
+
+function formatDateTime(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 export default function App() {
+  const [userName, setUserName] = useState<string>(
+    () => localStorage.getItem(NAME_KEY) ?? ""
+  );
   const [result, setResult] = useState<BenchResult | null>(null);
   const [showFallback, setShowFallback] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const mainstream = REFERENCE_MACHINES.find((m) => m.tier === "mainstream")!;
 
+  const handleName = (name: string) => {
+    localStorage.setItem(NAME_KEY, name);
+    setUserName(name);
+  };
+
+  const reportTime = result ? new Date(result.timestamp * 1000) : new Date();
+
   return (
     <div className="app">
+      {!userName && <NamePrompt onSubmit={handleName} />}
+
       <header className="topbar">
         <div className="brand">
           <span className="logo">⚡</span>
@@ -51,27 +73,46 @@ export default function App() {
           </div>
         ) : (
           <div className="dashboard">
-            <ScoreCard result={result} />
+            <div className="card report-bar">
+              <div>
+                <div className="report-title">
+                  {userName} - {formatDateTime(reportTime)}
+                </div>
+                <div className="muted report-sub">LiteBench 评测报告</div>
+              </div>
+              <ExportPdf targetRef={reportRef} userName={userName} />
+            </div>
 
-            <HardwareDetail detail={result.detail} />
-
-            <div className="charts">
-              <div className="card">
-                <h3>分项性能雷达图</h3>
-                <RadarChart
-                  scores={result.subscores}
-                  reference={{
-                    cpu: mainstream.cpu,
-                    memory: mainstream.memory,
-                    disk: mainstream.disk,
-                    label: mainstream.label,
-                  }}
-                />
+            <div ref={reportRef} className="report-body">
+              <div className="report-head-print">
+                <span className="report-title">
+                  {userName} - {formatDateTime(reportTime)}
+                </span>
+                <span className="muted">LiteBench 评测报告</span>
               </div>
 
-              <div className="card">
-                <h3>综合评分 · 网络对比</h3>
-                <CompareBar myTotal={result.totalScore} />
+              <ScoreCard result={result} />
+
+              <HardwareDetail detail={result.detail} />
+
+              <div className="charts">
+                <div className="card">
+                  <h3>分项性能雷达图</h3>
+                  <RadarChart
+                    scores={result.subscores}
+                    reference={{
+                      cpu: mainstream.cpu,
+                      memory: mainstream.memory,
+                      disk: mainstream.disk,
+                      label: mainstream.label,
+                    }}
+                  />
+                </div>
+
+                <div className="card">
+                  <h3>综合评分 · 网络对比</h3>
+                  <CompareBar myTotal={result.totalScore} />
+                </div>
               </div>
             </div>
           </div>

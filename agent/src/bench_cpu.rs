@@ -61,9 +61,18 @@ fn count_ops(duration_secs: f64, threads: usize) -> f64 {
 }
 
 /// Returns (single_core_ops_per_sec, multi_core_ops_per_sec).
+///
+/// Stability design: a discarded warm-up lets CPU clocks ramp up first, then
+/// each mode runs 3 timed rounds and reports the median, so one-off background
+/// interference doesn't swing the final score.
 pub fn run() -> (f64, f64) {
     let threads = rayon::current_num_threads().max(1);
-    let single = count_ops(1.5, 1);
-    let multi = count_ops(1.5, threads);
+
+    let _ = count_ops(0.5, 1); // warm-up, discarded
+    let single = crate::util::median_of(3, || count_ops(2.0, 1));
+
+    let _ = count_ops(0.5, threads); // warm-up, discarded
+    let multi = crate::util::median_of(3, || count_ops(2.0, threads));
+
     (single, multi)
 }
