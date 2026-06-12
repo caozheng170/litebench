@@ -28,7 +28,7 @@ export function HardwareDetail({ detail }: Props) {
   }
 
   return (
-    <div className="card">
+    <div className="card hw-detail-print">
       <div className="detail-head">
         <h3>精准硬件信息与批次</h3>
         {detail.systemEstProductionYear && (

@@ -27,6 +27,8 @@ impl Default for Progress {
 pub struct AppState {
     pub progress: Progress,
     pub result: Option<BenchResult>,
+    /// True while a benchmark thread is active.
+    pub running: bool,
 }
 
 impl AppState {

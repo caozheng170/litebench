@@ -403,6 +403,19 @@ body {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+.dot.offline {
+  background: #f87171;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.agent.offline {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.agent.offline h2 {
+  color: #fca5a5;
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -627,4 +640,144 @@ body {
   align-items: baseline;
   justify-content: space-between;
   padding: 4px 6px 0;
+}
+
+/* ── Print / Export PDF (browser native — same as Ctrl+P) ── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto !important;
+    background: #fff !important;
+    color: #1e293b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .app {
+    min-height: auto;
+    display: block;
+  }
+
+  .content {
+    max-width: none;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .dashboard,
+  .report-body,
+  .print-area {
+    display: block;
+    gap: 0;
+  }
+
+  .report-head-print {
+    display: flex !important;
+    border-bottom: 1px solid #cbd5e1;
+    padding: 0 0 10px;
+    margin: 0 0 14px;
+  }
+
+  .card {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  /* Long hardware section may span pages */
+  .card.hw-detail-print {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .detail-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .total-num {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    color: #4338ca !important;
+    -webkit-text-fill-color: #4338ca !important;
+  }
+
+  .muted,
+  .stat-label,
+  .sub span,
+  .total-label,
+  .sub-hint,
+  .detail-table th {
+    color: #64748b !important;
+  }
+
+  .sub.cpu b {
+    color: #4f46e5 !important;
+  }
+
+  .sub.mem b {
+    color: #0891b2 !important;
+  }
+
+  .sub.disk b {
+    color: #d97706 !important;
+  }
+
+  .year-pill {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+  }
+
+  .stat {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0;
+  }
+
+  .sub {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0;
+  }
+
+  .charts {
+    display: block;
+  }
+
+  .charts .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .charts .card + .card {
+    margin-top: 14px;
+  }
+
+  .detail-block h4 {
+    color: #4338ca !important;
+  }
+
+  .kv {
+    border-bottom-color: #e2e8f0 !important;
+  }
+
+  .detail-table th,
+  .detail-table td {
+    border-bottom-color: #e2e8f0 !important;
+  }
 }

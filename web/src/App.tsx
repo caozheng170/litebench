@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { BenchResult } from "./types";
 import { SAMPLE_RESULT, REFERENCE_MACHINES } from "./data/baseline";
+import { requestAgentRerun } from "./useAgent";
 import { AgentConnect } from "./components/AgentConnect";
 import { UploadResult } from "./components/UploadResult";
 import { ScoreCard } from "./components/ScoreCard";
@@ -23,7 +24,7 @@ export default function App() {
   );
   const [result, setResult] = useState<BenchResult | null>(null);
   const [showFallback, setShowFallback] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
+  const [runKey, setRunKey] = useState(0);
 
   const mainstream = REFERENCE_MACHINES.find((m) => m.tier === "mainstream")!;
 
@@ -32,21 +33,39 @@ export default function App() {
     setUserName(name);
   };
 
+  const handleRerun = async () => {
+    const status = await requestAgentRerun();
+    if (status === "busy") {
+      window.alert("检测正在进行中，请稍候。");
+      return;
+    }
+    if (status === "failed") {
+      window.alert("无法启动新一轮检测。请重新双击运行bench程序");
+      return;
+    }
+    setResult(null);
+    setRunKey((k) => k + 1);
+  };
+
   const reportTime = result ? new Date(result.timestamp * 1000) : new Date();
 
   return (
     <div className="app">
       {!userName && <NamePrompt onSubmit={handleName} />}
 
-      <header className="topbar">
+      <header className="topbar no-print">
         <div className="brand">
           <span className="logo">⚡</span>
           <span>LiteBench</span>
         </div>
         <span className="tagline">轻量电脑评测 · 自动检测 CPU / 内存 / 存储</span>
         {result && (
-          <button className="btn ghost sm" onClick={() => setResult(null)}>
-            重新检测
+          <button
+            className="btn ghost sm"
+            onClick={handleRerun}
+            title="在助手窗口仍打开时，从头重新跑分"
+          >
+            新一轮检测
           </button>
         )}
       </header>
@@ -59,7 +78,7 @@ export default function App() {
               运行轻量本地助手，自动检测精准硬件型号、批次与生产年份，跑分评估 CPU、内存、存储，并与网络参考机型对比。
             </p>
 
-            <AgentConnect onResult={setResult} />
+            <AgentConnect key={runKey} onResult={setResult} />
 
             <div className="fallback">
               {!showFallback ? (
@@ -73,17 +92,17 @@ export default function App() {
           </div>
         ) : (
           <div className="dashboard">
-            <div className="card report-bar">
+            <div className="card report-bar no-print">
               <div>
                 <div className="report-title">
                   {userName} - {formatDateTime(reportTime)}
                 </div>
                 <div className="muted report-sub">LiteBench 评测报告</div>
               </div>
-              <ExportPdf targetRef={reportRef} userName={userName} />
+              <ExportPdf userName={userName} reportTime={reportTime} />
             </div>
 
-            <div ref={reportRef} className="report-body">
+            <div className="report-body print-area">
               <div className="report-head-print">
                 <span className="report-title">
                   {userName} - {formatDateTime(reportTime)}
@@ -119,7 +138,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="footer">
+      <footer className="footer no-print">
         精准型号 / 批次 / 生产年份由本地助手读取（CIM/WMI、SMBIOS）。内存与磁盘的精确生产周年存于 SPD/SMART，用户态无法直接读取，故年份为估算值。
       </footer>
     </div>

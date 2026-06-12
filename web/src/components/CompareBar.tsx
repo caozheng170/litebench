@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { REFERENCE_MACHINES } from "../data/baseline";
 
@@ -5,7 +6,27 @@ interface Props {
   myTotal: number;
 }
 
+function usePrintMode(): boolean {
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const on = () => setPrinting(true);
+    const off = () => setPrinting(false);
+    window.addEventListener("beforeprint", on);
+    window.addEventListener("afterprint", off);
+    return () => {
+      window.removeEventListener("beforeprint", on);
+      window.removeEventListener("afterprint", off);
+    };
+  }, []);
+  return printing;
+}
+
 export function CompareBar({ myTotal }: Props) {
+  const printing = usePrintMode();
+  const axis = printing ? "#475569" : "#94a3b8";
+  const label = printing ? "#334155" : "#cbd5e1";
+  const valueLabel = printing ? "#1e293b" : "#e2e8f0";
+  const gridLine = printing ? "rgba(71,85,105,0.2)" : "rgba(148,163,184,0.15)";
   const entries = [
     ...REFERENCE_MACHINES.map((m) => ({ label: m.label, value: m.total, me: false })),
     { label: "★ 本机", value: myTotal, me: true },
@@ -16,22 +37,22 @@ export function CompareBar({ myTotal }: Props) {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     xAxis: {
       type: "value",
-      axisLabel: { color: "#94a3b8" },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
+      axisLabel: { color: axis },
+      splitLine: { lineStyle: { color: gridLine } },
     },
     yAxis: {
       type: "category",
       data: entries.map((e) => e.label),
-      axisLabel: { color: "#cbd5e1" },
+      axisLabel: { color: label },
     },
     series: [
       {
         type: "bar",
         data: entries.map((e) => ({
           value: e.value,
-          itemStyle: { color: e.me ? "#6366f1" : "#475569", borderRadius: [0, 4, 4, 0] },
+          itemStyle: { color: e.me ? "#6366f1" : printing ? "#94a3b8" : "#475569", borderRadius: [0, 4, 4, 0] },
         })),
-        label: { show: true, position: "right", color: "#e2e8f0", formatter: "{c}" },
+        label: { show: true, position: "right", color: valueLabel, formatter: "{c}" },
         barWidth: "55%",
       },
     ],

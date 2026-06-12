@@ -1,10 +1,9 @@
+use crate::benchmark;
 use crate::state::AppState;
 use include_dir::{include_dir, Dir};
 use std::sync::{Arc, Mutex};
 use tiny_http::{Header, Method, Response, Server};
 
-/// The production web UI is built into `web/dist` and embedded into the exe at
-/// compile time, so the single binary serves its own interface.
 static ASSETS: Dir = include_dir!("$CARGO_MANIFEST_DIR/../web/dist");
 
 type Resp = Response<std::io::Cursor<Vec<u8>>>;
@@ -36,7 +35,7 @@ fn header(name: &str, value: &str) -> Header {
 
 fn with_cors(resp: Resp) -> Resp {
     resp.with_header(header("Access-Control-Allow-Origin", "*"))
-        .with_header(header("Access-Control-Allow-Methods", "GET, OPTIONS"))
+        .with_header(header("Access-Control-Allow-Methods", "GET, POST, OPTIONS"))
         .with_header(header("Access-Control-Allow-Headers", "Content-Type"))
 }
 
@@ -53,26 +52,39 @@ fn serve_asset(path: &str) -> Resp {
     match ASSETS.get_file(key) {
         Some(file) => with_cors(Response::from_data(file.contents().to_vec()))
             .with_header(header("Content-Type", mime_for(key))),
-        None => {
-            // SPA fallback: unknown non-API path -> serve index.html if present.
-            match ASSETS.get_file("index.html") {
-                Some(index) => with_cors(Response::from_data(index.contents().to_vec()))
-                    .with_header(header("Content-Type", "text/html; charset=utf-8")),
-                None => with_cors(Response::from_string(
-                    "未找到内嵌界面（构建时缺少 web/dist）。API 仍可用：/status /result",
-                ))
-                .with_status_code(404),
-            }
-        }
+        None => match ASSETS.get_file("index.html") {
+            Some(index) => with_cors(Response::from_data(index.contents().to_vec()))
+                .with_header(header("Content-Type", "text/html; charset=utf-8")),
+            None => with_cors(Response::from_string(
+                "未找到内嵌界面（构建时缺少 web/dist）。API 仍可用：/status /result /rerun",
+            ))
+            .with_status_code(404),
+        },
     }
 }
 
-/// Run the blocking HTTP server. Exposes:
-///   GET /health  -> { ok: true }
-///   GET /status  -> Progress JSON
-///   GET /result  -> BenchResult JSON (202 until done)
-///   GET /*       -> embedded web UI
-pub fn serve(addr: &str, state: Arc<Mutex<AppState>>) {
+fn handle_rerun(state: Arc<Mutex<AppState>>, out_path: &str) -> Resp {
+    let scheduled = {
+        let mut st = state.lock().unwrap();
+        benchmark::request_rerun(&mut st)
+    };
+    if !scheduled {
+        return json(
+            409,
+            r#"{"error":"benchmark already running"}"#.to_string(),
+        );
+    }
+    let state = Arc::clone(&state);
+    let out = out_path.to_string();
+    std::thread::spawn(move || benchmark::run(state, &out));
+    eprintln!("收到重新检测请求，开始新一轮跑分…");
+    json(202, r#"{"ok":true}"#.to_string())
+}
+
+///   GET  /health, /status, /result
+///   POST /rerun   -> start a fresh benchmark (202, or 409 if busy)
+///   GET  /*        -> embedded web UI
+pub fn serve(addr: &str, state: Arc<Mutex<AppState>>, out_path: String) {
     let server = match Server::http(addr) {
         Ok(s) => s,
         Err(e) => {
@@ -100,6 +112,7 @@ pub fn serve(addr: &str, state: Arc<Mutex<AppState>>) {
                     None => json(202, r#"{"error":"benchmark still running"}"#.to_string()),
                 }
             }
+            (Method::Post, "/rerun") => handle_rerun(Arc::clone(&state), &out_path),
             (Method::Get, path) => serve_asset(path),
             _ => json(404, r#"{"error":"not found"}"#.to_string()),
         };
