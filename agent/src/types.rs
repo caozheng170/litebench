@@ -118,6 +118,9 @@ pub struct BenchResult {
     pub subscores: SubScores,
     #[serde(rename = "totalScore")]
     pub total_score: f64,
+    /// "hdd" or "ssd" — which baseline was used to score the disk subsystem.
+    #[serde(rename = "diskTier")]
+    pub disk_tier: String,
     pub raw: RawMetrics,
     pub timestamp: u64,
 }

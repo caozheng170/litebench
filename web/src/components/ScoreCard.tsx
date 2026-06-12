@@ -1,5 +1,5 @@
 import type { BenchResult } from "../types";
-import { percentileOf } from "../data/baseline";
+import { diskTierLabel, percentileOf } from "../data/baseline";
 
 interface Props {
   result: BenchResult;
@@ -41,6 +41,9 @@ export function ScoreCard({ result }: Props) {
         <div className="sub disk">
           <span>存储</span>
           <b>{Math.round(subscores.disk)}</b>
+          {result.diskTier && (
+            <span className="sub-hint">{diskTierLabel(result.diskTier)}</span>
+          )}
         </div>
       </div>
 

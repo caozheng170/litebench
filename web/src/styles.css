@@ -240,6 +240,14 @@ body {
   font-size: 24px;
 }
 
+.sub-hint {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
 .sub.cpu b {
   color: var(--cpu);
 }

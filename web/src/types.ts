@@ -77,6 +77,8 @@ export interface BenchResult {
   detail: HwDetail;
   subscores: SubScores;
   totalScore: number;
+  /** "hdd" or "ssd" — disk scoring baseline used */
+  diskTier?: string;
   raw: RawMetrics;
   timestamp: number;
 }

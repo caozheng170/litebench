@@ -1,9 +1,11 @@
 import type { BenchResult } from "../types";
 
 /**
- * Built-in reference machines used for the "network comparison" charts in the MVP.
- * Once the backend + database land, this static sample set is replaced by real,
- * percentile-based comparisons aggregated by hardware model.
+ * Reference machines recalibrated for v0.2+ scoring:
+ * - Unbuffered disk IO (real device speed, not OS cache)
+ * - HDD / SSD scored on separate baselines
+ *
+ * Totals are hand-tuned to match typical honest scores on each tier.
  */
 export interface ReferenceMachine {
   label: string;
@@ -12,13 +14,46 @@ export interface ReferenceMachine {
   cpu: number;
   memory: number;
   disk: number;
+  diskTier: "hdd" | "ssd";
 }
 
 export const REFERENCE_MACHINES: ReferenceMachine[] = [
-  { label: "入门级笔记本 (2019)", tier: "entry", total: 620, cpu: 580, memory: 700, disk: 520 },
-  { label: "主流办公机 (2021)", tier: "mainstream", total: 1000, cpu: 1000, memory: 1000, disk: 1000 },
-  { label: "游戏台式机 (2022)", tier: "highend", total: 1850, cpu: 1900, memory: 1600, disk: 1750 },
-  { label: "高端工作站 (2024)", tier: "highend", total: 2900, cpu: 3100, memory: 2400, disk: 2600 },
+  {
+    label: "入门级笔记本 (2019)",
+    tier: "entry",
+    total: 520,
+    cpu: 450,
+    memory: 480,
+    disk: 580,
+    diskTier: "hdd",
+  },
+  {
+    label: "主流办公机 (2021)",
+    tier: "mainstream",
+    total: 620,
+    cpu: 600,
+    memory: 660,
+    disk: 700,
+    diskTier: "ssd",
+  },
+  {
+    label: "游戏台式机 (2022)",
+    tier: "highend",
+    total: 820,
+    cpu: 780,
+    memory: 820,
+    disk: 880,
+    diskTier: "ssd",
+  },
+  {
+    label: "高端工作站 (2024)",
+    tier: "highend",
+    total: 1100,
+    cpu: 1050,
+    memory: 1100,
+    disk: 1050,
+    diskTier: "ssd",
+  },
 ];
 
 /** A sample result so the UI is demonstrable without running the native agent. */
@@ -83,33 +118,50 @@ export const SAMPLE_RESULT: BenchResult = {
       "内存/磁盘的精确生产周年存于 SPD/SMART，用户态无法直接读取；上方展示的是真实批次标识（厂商/料号/序列号）。",
     ],
   },
-  subscores: { cpu: 1820, memory: 1240, disk: 1560 },
-  totalScore: 1626,
+  subscores: { cpu: 920, memory: 950, disk: 980 },
+  totalScore: 940,
+  diskTier: "ssd",
   raw: {
-    cpuSingleOps: 138000,
-    cpuMultiOps: 1380000,
-    memBandwidthGBs: 22.3,
-    diskSeqMBs: 2400,
-    diskRandIOPS: 18600,
+    cpuSingleOps: 110000,
+    cpuMultiOps: 1100000,
+    memBandwidthGBs: 17.1,
+    diskSeqMBs: 1450,
+    diskRandIOPS: 11000,
   },
   timestamp: 1718000000,
 };
 
-/**
- * Where to reach the native agent.
- * - Production: the exe serves this very page, so use a same-origin (relative)
- *   base — no CORS, no mixed-content issues.
- * - Dev (vite on :5173): talk to the agent on its fixed port.
- */
 export const AGENT_BASE_URL = import.meta.env.DEV ? "http://127.0.0.1:38291" : "";
 
+const DISK_TIER_LABEL: Record<string, string> = {
+  hdd: "机械硬盘 (HDD)",
+  ssd: "固态硬盘 (SSD)",
+};
+
+export function diskTierLabel(tier: string | undefined): string {
+  return DISK_TIER_LABEL[tier ?? ""] ?? "未知";
+}
+
 /**
- * Compute the approximate percentile of a total score against the reference set
- * (linear interpolation over the sorted reference totals).
+ * Interpolate percentile across the sorted reference totals so a score sitting
+ * between two reference machines gets a sensible rank (not a coarse bucket).
  */
 export function percentileOf(total: number): number {
-  const totals = REFERENCE_MACHINES.map((m) => m.total).sort((a, b) => a - b);
-  let below = 0;
-  for (const t of totals) if (t < total) below++;
-  return Math.round((below / totals.length) * 100);
+  const sorted = [...REFERENCE_MACHINES].sort((a, b) => a.total - b.total);
+  const n = sorted.length;
+
+  if (total <= sorted[0].total) return 10;
+  if (total >= sorted[n - 1].total) return 90;
+
+  for (let i = 0; i < n - 1; i++) {
+    const lo = sorted[i];
+    const hi = sorted[i + 1];
+    if (total >= lo.total && total <= hi.total) {
+      const frac = (total - lo.total) / (hi.total - lo.total);
+      const pctLo = ((i + 1) / n) * 100;
+      const pctHi = ((i + 2) / n) * 100;
+      return Math.round(pctLo + frac * (pctHi - pctLo));
+    }
+  }
+  return 50;
 }

@@ -1,6 +1,7 @@
 mod bench_cpu;
 mod bench_disk;
 mod bench_mem;
+mod browser;
 mod dmi;
 mod score;
 mod server;
@@ -10,7 +11,7 @@ mod util;
 
 use state::AppState;
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use types::{BenchResult, Hardware, RawMetrics};
 
 const DEFAULT_ADDR: &str = "127.0.0.1:38291";
@@ -39,11 +40,15 @@ fn main() {
         server::serve(&serve_addr, server_state);
     });
 
-    // Give the server a moment to bind, then open the bundled UI in the browser.
-    std::thread::sleep(std::time::Duration::from_millis(400));
+    // Wait until the HTTP server is actually listening, then launch the default
+    // browser (with retries — a fixed short sleep was unreliable on slow disks).
     let url = format!("http://{}", addr);
-    eprintln!("正在打开浏览器: {}", url);
-    open_browser(&url);
+    if browser::wait_for_server(&addr, Duration::from_secs(10)) {
+        eprintln!("正在打开浏览器: {}", url);
+        browser::open(&url);
+    } else {
+        eprintln!("本地服务启动超时，请手动打开: {}", url);
+    }
 
     let _ = bench_handle.join();
     eprintln!("跑分完成。本地服务保持运行，关闭此窗口即可退出。");
@@ -53,24 +58,6 @@ fn main() {
     loop {
         std::thread::sleep(std::time::Duration::from_secs(3600));
     }
-}
-
-#[cfg(windows)]
-fn open_browser(url: &str) {
-    let _ = std::process::Command::new("cmd")
-        .args(["/C", "start", "", url])
-        .spawn();
-}
-
-#[cfg(target_os = "macos")]
-fn open_browser(url: &str) {
-    let _ = std::process::Command::new("open").arg(url).spawn();
-}
-
-#[cfg(not(any(windows, target_os = "macos")))]
-fn open_browser(url: &str) {
-    // Best-effort on Linux and friends.
-    let _ = std::process::Command::new("xdg-open").arg(url).spawn();
 }
 
 fn run_benchmark(state: Arc<Mutex<AppState>>, out_path: &str) {
@@ -126,7 +113,7 @@ fn run_benchmark(state: Arc<Mutex<AppState>>, out_path: &str) {
         disk_seq_mbs: disk_seq,
         disk_rand_iops: disk_rand,
     };
-    let (subscores, total_score) = score::compute(&raw);
+    let (subscores, total_score, disk_tier) = score::compute(&raw);
 
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -139,6 +126,7 @@ fn run_benchmark(state: Arc<Mutex<AppState>>, out_path: &str) {
         detail,
         subscores,
         total_score,
+        disk_tier: disk_tier.as_str().to_string(),
         raw,
         timestamp,
     };
